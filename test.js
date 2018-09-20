@@ -1,16 +1,22 @@
 function Future (fn) {
-  this.then = (cb) => cb()
+  var callback = null
 
-  function resolve (callback) {
+  this.then = (cb) => {
+    callback = cb
   }
+
+  function resolve (value) {
+    // callback(value)
+  }
+  fn (resolve)
 }
 
 function doSomething(value) {
-  return new Future (function () {
-    console.log(value)
-  })  
+  return new Future (function (resolve) {
+    resolve(value)
+  })
 }
 
-doSomething(42).then()
-
+console.log(doSomething(21))
+// .then((data) => console.log(data))
 // then is a function which takes a function
