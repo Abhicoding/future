@@ -1,66 +1,37 @@
 function Future (fn) {
-  var state = 'pending'
-  var deferred
+  var status = 'pending'
   var value
-  
-  this.then = function (onResolved, onRejected) {
-    return new Future (function (resolve, reject) {
+
+  this.then = function (cbResolve) {
+    return new Future (function (resolve) {
       handle({
-        onResolved, onRejected, resolve, reject
+        cbResolve,
+        resolve
       })
     })
   }
 
-  function resolve (newValue) {
-    if (newValue && typeof newValue.then === 'function') {
-      newValue.then(resolve, reject)
+  function resolve (input) {
+    if(input && input.then === 'function'){
+      input.then(resolve)
       return
     }
-
-    state = 'resolved'
-    value = newValue
-    // setTimeout(() => {
-    //   callback(value)
-    // })
-    // if (deferred) {
-    //   handle(deferred)
-    // }
-  }
-
-  function reject (reason) {
-    state = 'rejected'
-    value = reason
-    return
+    status = 'resolved'
+    value = input
   }
 
   function handle (handler) {
-    // if (state === 'pending') {
-    //   deferred = onResolved
-    //   return
-    // }
 
-    var handlerCallback
-
-    if (state === 'resolved') { // post resolution
-      handlerCallback = handler.onResolved
-    } else {
-      handlerCallback = handler.onRejected
-    }
-
-    if (!handler.onResolved) { // optional callback
-      if (state === 'resolved') {
-        handler.resolve(value)
-      } else {
-        handler.reject(value)
-      }
+    if (!handler.cbResolve) {
+      handler.resolve(value)
       return
     }
 
-    var ret = handlerCallback(value) //this returns a promise
-    return handler.resolve(ret)
+    var returnValue = handler.cbResolve(value)
+    return handler.resolve(returnValue)
   }
 
-  fn (resolve, reject)
+  fn (resolve)
 }
 
 function doSomething (value) {
@@ -71,13 +42,34 @@ function doSomething (value) {
 }
 
 doSomething(21)
-  .then(x => {
-    console.log(2*x++)
-  return 2 * x++})
-  .then(x => {
-    console.log(2*x--)
-    return 2 * x--
+ .then(x => {
+    x = (x+1) * 2
+    console.log(x)
+    return x
   })
   .then(x => {
-    console.log(x/2)
-  })
+    x = (x+1) * 2
+    console.log(x)
+  return x})
+//   .then(x => {
+//     console.log(2*x--)
+//     return 2 * x--
+//   })
+//   .then(x => {
+//     console.log(x/2)
+//   })
+
+  // function getSomeJson () {
+  //   return new Promise (function (resolve, reject){
+  //     var badJson = "<div> uh oh, this is not JSON at all </div>"
+  //     resolve(badJson)
+  //   })
+  // }
+
+  // getSomeJson()
+  //   .then(function badJsonCb(json){
+  //     var obj = JSON.parse(json)
+  //     console.log(json)
+  //   }, function badJsonErr  (error) {
+  //     console.log('uh oh', error)
+  //   })
