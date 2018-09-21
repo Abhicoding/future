@@ -1,5 +1,6 @@
 function Future (fn) {
   var status = 'pending'
+  var defer = null
   var value
 
   this.then = function (cbResolve, cbReject) {
@@ -19,46 +20,56 @@ function Future (fn) {
         input.then(resolve)
         return
       }
-      
       status = 'resolved'
       value = input
     } catch (e) {
       reject(e)
     }
+    if (defer) {
+      handle(defer)
+      return
+    }
   }
 
   function reject (reason) {
-    status = 'rejected'
-    value = reason
+      status = 'rejected'
+      value = reason
+    if (defer) {
+      handle(defer)
+    }
   }
 
   function handle (handler) {
-    // console.log(handler)
-
-    var handleCallback
-    
-    if (status === 'resolved') {
-      handleCallback = handler.cbResolve
-    } else {
-      handleCallback = handle.cbReject
-    }
-
-    if (!handleCallback) {
-      if (status === 'resolved') {
-          handler.resolve(value);
-      } else {
-          handler.reject(value);
-      }
+    if(status === 'pending') {
+      defer = handler;
       return;
-  }
-
-    var returnValue
-    try {
-      returnValue = handler.cbResolve(value)
-      handler.resolve(returnValue)
-    } catch (e) {
-      handler.reject(e)
     }
+    setTimeout (() =>{
+      var handleCallback
+      
+      if (status === 'resolved') {
+        handleCallback = handler.cbResolve
+      } else {
+        handleCallback = handler.cbReject
+      }
+
+      if (!handleCallback) {
+        if (status === 'resolved') {
+            handler.resolve(value);
+        } else {
+            handler.reject(value);
+        }
+        return;
+      }
+      var returnValue
+      
+      try {
+        returnValue = handleCallback(value)
+        handler.resolve(returnValue)
+      } catch (e) {
+        handler.reject(e)
+      }
+    }, 0)
   }
 
   fn (resolve, reject)
@@ -108,7 +119,7 @@ getSomeJson()
     var obj = JSON.parse(json)
     console.log(obj)})
   .then(null, function(error) {
-    console.log("an error occured: ", error)})
+    console.log("Oh no! an error occured: ", error)})
 // var badJson = "<div>uh oh, this is not JSON at all!</div>"
 // try {
 //   JSON.parse(badJson)
